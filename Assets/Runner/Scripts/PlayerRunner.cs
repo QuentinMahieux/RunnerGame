@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 public class PlayerRunner : MonoBehaviour
@@ -14,6 +15,10 @@ public class PlayerRunner : MonoBehaviour
     public float changeLine = 10f;
     public int actualLine = 1;
     public List<float> linePositionX = new List<float>();
+
+    [Header("Player Movement Mobile")] 
+    private Vector2 startTouchPosition;
+    private Vector2 endTouchPosition;
 
     [Header("Other Information")] 
     public int goldNumber;
@@ -34,6 +39,35 @@ public class PlayerRunner : MonoBehaviour
     {
         rb.linearVelocity = playerSpeed * transform.forward;
 
+        //Mobile Controller
+        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        {
+            startTouchPosition = Input.GetTouch(0).position;
+        }
+
+        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended)
+        {
+            endTouchPosition = Input.GetTouch(0).position;
+
+            if (endTouchPosition.x > startTouchPosition.x)
+            {
+                if (actualLine < linePositionX.Count - 1)
+                {
+                    actualLine++;
+                }
+                ChangePlayerLine();
+            }
+            else if (endTouchPosition.x < startTouchPosition.x)
+            {
+                if (actualLine > 0)
+                {
+                    actualLine--;
+                }
+                ChangePlayerLine();
+            }
+        }
+        
+        //PC Controller
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             if (actualLine > 0)
@@ -61,7 +95,6 @@ public class PlayerRunner : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        Debug.Log(other.gameObject.name);
         if (other.CompareTag("Obstacle"))
         {
             Destroy(gameObject);
@@ -69,9 +102,8 @@ public class PlayerRunner : MonoBehaviour
         }
         else if (other.CompareTag("Gold"))
         {
-            Destroy(other.gameObject);
+            other.gameObject.SetActive(false);
             goldNumber++;
         }
     }
-   
 }

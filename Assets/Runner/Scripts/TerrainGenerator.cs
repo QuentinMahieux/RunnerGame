@@ -1,18 +1,41 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class TerrainGenerator : MonoBehaviour
 {
+    public static TerrainGenerator instance;
     [Header("Terrain Settings")]
     public List<GroundInformation> groundInformation;
     [SerializeField] private List<GroundInformation> allLuckGround;
     public float groundDistance = 1.5f;
     public int levelSize = 500;
-    public int actualLevelSize;
     
     [Header("Optimisation Parameters")]
     public float timeToCreateNewElement = 0.2f;
+
+    public List<GameObject> listElementInstanciate =  new List<GameObject>();
+    [Tooltip("Nombre d'object instancier avant de reprendre de objects instancier")] 
+    public int numberElementMinimal = 100;
+
+    [Header("Terrain Statistics")]
+    public int actualLevelSize;
+    public int actualWalk;
+
+    void Awake()
+    {
+        if (!instance)
+        {
+            instance = this;
+        }
+        else
+        {
+            Debug.LogError("TerrainGenerator instance already exists");
+            Destroy(this);
+        }
+    }
 
     void Start()
     {
@@ -27,7 +50,7 @@ public class TerrainGenerator : MonoBehaviour
         for (int i = 0; i < levelSize; i++)
         {
             GroundInformation randomGround = allLuckGround[Random.Range(0, allLuckGround.Count)];
-            Instantiate(randomGround.groundPrefab,  new Vector3(0, 0, actualLevelSize * groundDistance), Quaternion.identity);
+            GameObject newInstantiate = Instantiate(randomGround.groundPrefab,  new Vector3(0, 0, actualLevelSize * groundDistance), Quaternion.identity);
             actualLevelSize++;
         }
 
@@ -39,8 +62,28 @@ public class TerrainGenerator : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(timeToCreateNewElement);
-            GroundInformation randomGround = allLuckGround[Random.Range(0, allLuckGround.Count)];
-            Instantiate(randomGround.groundPrefab,  new Vector3(0, 0, actualLevelSize * groundDistance), Quaternion.identity);
+
+            if (!LevelManager.instance.isLevelUp)
+            {
+                if (listElementInstanciate.Count >= numberElementMinimal && listElementInstanciate.Count != 0)
+                {
+                    Debug.Log("Respawn Prefab !");
+                    int indexRandom = Random.Range(0, listElementInstanciate.Count);
+                    listElementInstanciate[indexRandom].transform.position = new Vector3(0, 0, actualLevelSize * groundDistance);
+                    listElementInstanciate[indexRandom].SetActive(true);
+                    listElementInstanciate.RemoveAt(indexRandom);
+                }
+                else
+                {
+                    GroundInformation randomGround = allLuckGround[Random.Range(0, allLuckGround.Count)];
+                    Instantiate(randomGround.groundPrefab,  new Vector3(0, 0, actualLevelSize * groundDistance), Quaternion.identity);
+                }
+                actualWalk++;
+            }
+            else
+            {
+                Instantiate(LevelManager.instance.levelGroundPrefab, new Vector3(0, 0, actualLevelSize * groundDistance), Quaternion.identity);
+            }
             actualLevelSize++;
         }
         
